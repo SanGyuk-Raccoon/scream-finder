@@ -9,6 +9,8 @@ jobs:
   # 1단계: 영역별 접근 제어 (Gatekeeper)
   check-access:
     runs-on: ubuntu-latest
+    outputs:
+      status: ${{ job.status }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -21,7 +23,6 @@ jobs:
           AUTHOR="${{ github.event.pull_request.user.login }}"
           echo "PR Author: $AUTHOR"
 
-          # Use git diff to find changes relative to the base branch
           CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
           VIOLATION=false
 
@@ -79,7 +80,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    if: github.event.pull_request.changed_files > 0
+    if: contains(github.event.pull_request.changed_files, 'src/') # 소스 코드 변경 시에만
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
