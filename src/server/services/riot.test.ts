@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { exchangeCodeForSession } from './riot';
 import { server } from '@/tests/mocks/server';
 import { http, HttpResponse } from 'msw';
