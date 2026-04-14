@@ -1,0 +1,113 @@
+name: CI Pipeline
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches: [main]
+
+jobs:
+  # 1단계: 영역별 접근 제어 (Gatekeeper)
+  check-access:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify Domain Access
+        id: verify
+        run: |
+          AUTHOR="${{ github.event.pull_request.user.login }}"
+          echo "PR Author: $AUTHOR"
+
+          # Use git diff to find changes relative to the base branch
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          VIOLATION=false
+
+          if [ "$AUTHOR" == "frndhoon" ]; then
+            for file in $CHANGED_FILES; do
+              if [[ $file == src/server/* ]] || [[ $file == src/shared/* ]]; then
+                echo "❌ ERROR: 'frndhoon' is not allowed to modify server or shared domains ($file)"
+                VIOLATION=true
+              fi
+            done
+          fi
+
+          if [ "$AUTHOR" == "byoul" ]; then
+            for file in $CHANGED_FILES; do
+              if [[ $file == src/app/* ]] || [[ $file == src/client/* ]]; then
+                echo "❌ ERROR: 'byoul' is not allowed to modify app or client domains ($file)"
+                VIOLATION=true
+              fi
+            done
+          fi
+
+          if [ "$VIOLATION" = true ]; then
+            echo "⚠️ Access Denied: Domain violation detected."
+            exit 1
+          fi
+          echo "✅ Domain access verified."
+
+  # 2단계: 테스트 및 린트 (check-access 성공 시에만 실행)
+  test:
+    needs: [check-access]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Lint check
+        run: npm run lint
+
+      - name: Run unit tests
+        run: npm run test
+
+  # 3단계: Gemini AI 코드 리뷰 (check-access 성공 시에만 실행)
+  review:
+    needs: [check-access]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    if: github.event.pull_request.changed_files > 0
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Gemini AI Code Review
+        uses: anc95/Gemini-Review-Action@main
+        with:
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          model: "gemini-1.5-flash"
+          custom_prompt: |
+            당신은 2인 협업(Server & Front-end) 체제의 ScrimFinder 프로젝트 리드 개발자입니다.
+            개발자가 자신의 코드뿐만 아니라, **상대방 개발자의 영역에 미칠 영향**을 명확히 인지할 수 있도록 다음 구조에 따라 리뷰를 작성해 주세요.
+
+            ### 1. 🔍 변경 사항 요약 (What's Changed)
+            - 수정된 파일들이 시스템 전체 로직에서 어떤 변화를 만드는지 요약해 주세요.
+
+            ### 2. 🔗 상호 영향 분석 (Cross-domain Impact)
+            - 서버 변경이 프론트에 주는 영향(타입, API 구조)과 프론트 변경이 서버에 주는 영향(호출 빈도, 무결성)을 분석하세요.
+
+            ### 3. ⚠️ 영역별 리스크 진단 (Role-Specific Risk)
+            - **Server Focus**: server-only 준수, DOP 순수 함수 로직 확인.
+            - **Front Focus**: UX 결함, Server Actions 연동 방식 확인.
+
+            ### 4. 🧪 테스트 및 안정성 (Stability)
+            - 새로운 로직에 대한 테스트 코드(*.test.ts) 포함 여부 확인.
+
+            ### 5. 💡 협업을 위한 제안 (Collaboration Advice)
+            - 두 개발자가 함께 논의해야 할 상호 의존적인 부분을 제시해 주세요.
+
+            Language: Korean (한국어)
