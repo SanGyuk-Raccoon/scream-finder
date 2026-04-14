@@ -7,4 +7,12 @@ export interface LolMember {
 export interface MatchRequest {
   title: string;
   description?: string;
+  minTier: string;
+  maxTier: string;
+  startTime: string; // ISO format
+}
+
+export interface MatchResponse {
+  id: string;
+  status: 'OPEN' | 'CLOSED';
 }
