@@ -3,7 +3,6 @@ name: CI Pipeline
 on:
   pull_request:
     types: [opened, synchronize]
-    branches: [main]
 
 jobs:
   # 1단계: 영역별 접근 제어 (Gatekeeper)
@@ -23,9 +22,11 @@ jobs:
           AUTHOR="${{ github.event.pull_request.user.login }}"
           echo "PR Author: $AUTHOR"
 
+          # 변경된 파일 목록 추출
           CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
           VIOLATION=false
 
+          # 1. frndhoon (Front Dev) 규칙 검사
           if [ "$AUTHOR" == "frndhoon" ]; then
             for file in $CHANGED_FILES; do
               if [[ $file == src/server/* ]] || [[ $file == src/shared/* ]]; then
@@ -35,6 +36,7 @@ jobs:
             done
           fi
 
+          # 2. byoul (Server Dev) 규칙 검사
           if [ "$AUTHOR" == "byoul" ]; then
             for file in $CHANGED_FILES; do
               if [[ $file == src/app/* ]] || [[ $file == src/client/* ]]; then
@@ -45,10 +47,13 @@ jobs:
           fi
 
           if [ "$VIOLATION" = true ]; then
-            echo "⚠️ Access Denied: Domain violation detected."
+            echo "--------------------------------------------------------"
+            echo "⚠️  Access Denied: You have modified files outside your domain."
+            echo "Please request a change from the responsible developer instead."
             exit 1
+          else
+            echo "✅ Domain access verified. No violations found."
           fi
-          echo "✅ Domain access verified."
 
   # 2단계: 테스트 및 린트 (check-access 성공 시에만 실행)
   test:
@@ -80,13 +85,12 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    if: contains(github.event.pull_request.changed_files, 'src/') # 소스 코드 변경 시에만
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Gemini AI Code Review
-        uses: anc95/Gemini-Review-Action@main
+        uses: anc95/Gemini-Code-Review-Action@main
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
