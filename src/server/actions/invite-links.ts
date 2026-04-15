@@ -1,6 +1,6 @@
 import "server-only";
 import crypto from "crypto";
-import { TeamInviteLink, TeamMember } from "@/shared/types/core";
+import { TeamInviteLink } from "@/shared/types/core";
 import {
   CreateInviteLinkActionInput,
   CreateInviteLinkActionResult,
