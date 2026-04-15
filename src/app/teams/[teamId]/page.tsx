@@ -1,19 +1,15 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/server/actions/auth";
-import { getTeamViewAction } from "@/server/actions/queries";
+import { getTeamViewAction } from "@/server/actions/teams";
 
 type Props = {
   params: Promise<{ teamId: string }>;
   searchParams: Promise<{ error?: string; inviteCreated?: string; matchCreated?: string }>;
 };
 
-function formatMemberName(gameName?: string, tagLine?: string): string {
-  if (!gameName || !tagLine) {
-    return "Riot verification pending";
-  }
-
-  return `${gameName}#${tagLine}`;
+function formatMemberName(name?: string): string {
+  return name || "이름 미입력";
 }
 
 export default async function TeamDetailPage({ params, searchParams }: Props) {
@@ -36,9 +32,8 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
   }
 
   const activeInvite = inviteLinks.find((link) => link.status === "ACTIVE");
-  const ownerMember = members.find((member) => member.role === "OWNER");
-  const ownerNeedsVerification = ownerMember?.status !== "ACTIVE";
   const hasOpenMatch = matchPosts.some((post) => post.status === "OPEN");
+  const activeMembers = members.filter((member) => member.status === "ACTIVE");
 
   return (
     <main className="shell">
@@ -54,14 +49,13 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
           <div>
             <span className="meta-label">멤버 상태</span>
             <strong>
-              {members.filter((member) => member.status === "ACTIVE").length}명 활성 /
-              {members.length}명 전체
+              {activeMembers.length}명 활성 / {members.length}명 전체
             </strong>
           </div>
         </div>
         {query.error ? <p className="notice error">{query.error}</p> : null}
         {query.inviteCreated ? (
-          <p className="notice success">새 초대 링크를 생성했습니다.</p>
+          <p className="notice success">새 초대 링크를 만들었습니다.</p>
         ) : null}
         {query.matchCreated ? (
           <p className="notice success">매칭 글을 등록했습니다.</p>
@@ -69,14 +63,14 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
       </section>
 
       <section className="panel">
-        <p className="eyebrow">Verification Status</p>
-        <h2>현재 단계가 바로 보이도록 정리한 상태판</h2>
+        <p className="eyebrow">Status</p>
+        <h2>현재 목표 기준 진행 상태</h2>
         <div className="checklist">
           <div className={`check-item ${inviteLinks.length > 0 ? "is-done" : ""}`}>
             1. 초대 링크 생성 {inviteLinks.length > 0 ? "완료" : "대기"}
           </div>
-          <div className={`check-item ${ownerNeedsVerification ? "" : "is-done"}`}>
-            2. 팀장 Riot 검증 {ownerNeedsVerification ? "대기" : "완료"}
+          <div className={`check-item ${activeMembers.length > 0 ? "is-done" : ""}`}>
+            2. 팀 멤버 활성화 {activeMembers.length > 0 ? "완료" : "대기"}
           </div>
           <div className={`check-item ${hasOpenMatch ? "is-done" : ""}`}>
             3. 매칭 등록 {hasOpenMatch ? "완료" : "대기"}
@@ -84,32 +78,18 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
         </div>
       </section>
 
-      <section className="panel">
-        <div className="section-head">
-          <div>
-            <p className="eyebrow">Owner Verification</p>
-            <h2>팀장도 초대 링크를 통해 Riot 인증을 마쳐야 합니다.</h2>
-          </div>
-          {activeInvite ? (
-            <Link className="button secondary" href={`/join/${activeInvite.token}`}>
-              {ownerNeedsVerification ? "팀장 Riot 검증" : "초대 링크 보기"}
-            </Link>
-          ) : null}
-        </div>
-        <p className="lede">
-          {ownerNeedsVerification
-            ? "현재 팀장이 아직 ACTIVE 멤버가 아닙니다. 아래 초대 링크를 통해 본인도 팀에 합류하세요."
-            : "팀장 Riot 검증이 완료되어 매칭 등록 조건을 충족했습니다."}
-        </p>
-      </section>
-
       <section className="grid two">
         <div className="panel">
           <div className="section-head">
             <div>
               <p className="eyebrow">Invite Links</p>
-              <h2>공유 가능한 합류 링크</h2>
+              <h2>공유 가능한 팀 합류 링크</h2>
             </div>
+            {activeInvite ? (
+              <Link className="button secondary" href={`/join/${activeInvite.token}`}>
+                현재 링크 열기
+              </Link>
+            ) : null}
           </div>
           <form
             action={`/api/teams/${team.id}/invite-links`}
@@ -131,7 +111,7 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
 
           <div className="stack list">
             {inviteLinks.length === 0 ? (
-              <p className="muted">아직 생성된 링크가 없습니다.</p>
+              <p className="muted">아직 생성한 링크가 없습니다.</p>
             ) : (
               inviteLinks.map((link) => (
                 <article key={link.id} className="list-card">
@@ -159,14 +139,9 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
             {members.map((member) => (
               <article key={member.id} className="list-card">
                 <strong>
-                  {member.role === "OWNER" ? "팀장" : "팀원"} · {member.status}
+                  {member.role === "OWNER" ? "팀장" : "팀원"} / {member.status}
                 </strong>
-                <span>
-                  {formatMemberName(
-                    member.riotAccount?.gameName,
-                    member.riotAccount?.tagLine,
-                  )}
-                </span>
+                <span>{formatMemberName(member.displayName)}</span>
               </article>
             ))}
           </div>
@@ -185,7 +160,7 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
         </div>
         <div className="stack list">
           {matchPosts.length === 0 ? (
-            <p className="muted">아직 등록된 매칭 글이 없습니다.</p>
+            <p className="muted">아직 등록한 매칭 글이 없습니다.</p>
           ) : (
             matchPosts.map((post) => (
               <article key={post.id} className="list-card">

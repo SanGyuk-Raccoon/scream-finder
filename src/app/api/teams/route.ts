@@ -13,6 +13,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const team = await createTeamAction({
       ownerUserId: user.id,
+      ownerDisplayName: user.username,
       name: String(formData.get("name") ?? ""),
       description: String(formData.get("description") ?? ""),
       activityTime: String(formData.get("activityTime") ?? ""),

@@ -2,7 +2,6 @@ import "server-only";
 import crypto from "crypto";
 import {
   MatchPost,
-  RiotAccount,
   Team,
   TeamInviteLink,
   TeamMember,
@@ -11,7 +10,6 @@ import {
 import {
   InviteLinkRepository,
   MatchPostRepository,
-  RiotAccountRepository,
   TeamMemberRepository,
   TeamRepository,
   UserRepository,
@@ -22,7 +20,6 @@ type DatabaseState = {
   teams: Team[];
   members: TeamMember[];
   inviteLinks: TeamInviteLink[];
-  riotAccounts: RiotAccount[];
   matchPosts: MatchPost[];
 };
 
@@ -37,7 +34,6 @@ const db =
     teams: [],
     members: [],
     inviteLinks: [],
-    riotAccounts: [],
     matchPosts: [],
   });
 
@@ -114,18 +110,6 @@ class InMemoryTeamMemberRepository implements TeamMemberRepository {
       ) ?? null
     );
   }
-
-  async findByTeamIdAndRiotAccountId(
-    teamId: string,
-    riotAccountId: string,
-  ): Promise<TeamMember | null> {
-    return (
-      db.members.find(
-        (member) =>
-          member.teamId === teamId && member.riotAccountId === riotAccountId,
-      ) ?? null
-    );
-  }
 }
 
 class InMemoryInviteLinkRepository implements InviteLinkRepository {
@@ -146,31 +130,6 @@ class InMemoryInviteLinkRepository implements InviteLinkRepository {
 
   async listByTeamId(teamId: string): Promise<TeamInviteLink[]> {
     return db.inviteLinks.filter((link) => link.teamId === teamId);
-  }
-}
-
-class InMemoryRiotAccountRepository implements RiotAccountRepository {
-  async upsert(account: RiotAccount): Promise<RiotAccount> {
-    const index = db.riotAccounts.findIndex((entry) => entry.puuid === account.puuid);
-    if (index >= 0) {
-      db.riotAccounts[index] = {
-        ...db.riotAccounts[index],
-        ...account,
-        id: db.riotAccounts[index].id,
-      };
-      return db.riotAccounts[index];
-    }
-
-    db.riotAccounts.push(account);
-    return account;
-  }
-
-  async findById(id: string): Promise<RiotAccount | null> {
-    return db.riotAccounts.find((account) => account.id === id) ?? null;
-  }
-
-  async findByPuuid(puuid: string): Promise<RiotAccount | null> {
-    return db.riotAccounts.find((account) => account.puuid === puuid) ?? null;
   }
 }
 
@@ -203,7 +162,6 @@ export const repositories = {
   teams: new InMemoryTeamRepository(),
   members: new InMemoryTeamMemberRepository(),
   inviteLinks: new InMemoryInviteLinkRepository(),
-  riotAccounts: new InMemoryRiotAccountRepository(),
   matchPosts: new InMemoryMatchPostRepository(),
 };
 

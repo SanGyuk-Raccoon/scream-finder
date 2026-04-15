@@ -18,9 +18,9 @@ export default async function NewTeamPage({ searchParams }: Props) {
     <main className="shell">
       <section className="panel">
         <p className="eyebrow">Create Team</p>
-        <h1>팀장을 먼저 만들고, 이후에 Riot 검증으로 팀원 구성을 확정합니다.</h1>
+        <h1>팀을 먼저 만들고 초대 링크와 매칭 등록 흐름을 검증합니다</h1>
         <p className="lede">
-          지금 단계에서는 빠른 동작 검증이 목적이므로 팀명, 소개, 활동 시간만 받습니다.
+          현재는 RSO를 붙이기 전 단계라 팀 생성과 팀 멤버 저장, 매칭 등록까지의 기본 흐름에 집중합니다.
         </p>
         {query.error ? <p className="notice error">{query.error}</p> : null}
         <form action="/api/teams" method="post" className="stack">
@@ -33,7 +33,7 @@ export default async function NewTeamPage({ searchParams }: Props) {
             <textarea
               name="description"
               rows={4}
-              placeholder="주 3회 스크림, 밤 9시 이후 가능"
+              placeholder="주 3회 스크림, 저녁 시간대 중심으로 운영"
             />
           </label>
           <label className="field">
@@ -50,8 +50,8 @@ export default async function NewTeamPage({ searchParams }: Props) {
           </div>
         </form>
         <div className="checklist top-gap">
-          <div className="check-item">생성 성공 시 자동으로 팀 상세 페이지로 이동해야 합니다</div>
-          <div className="check-item">생성 직후 팀장 멤버 상태는 `PENDING_RIOT` 이어야 합니다</div>
+          <div className="check-item">생성 성공 후 자동으로 팀 상세 페이지로 이동해야 합니다</div>
+          <div className="check-item">생성 직후 팀장 멤버가 ACTIVE 상태로 저장되어야 합니다</div>
         </div>
       </section>
     </main>

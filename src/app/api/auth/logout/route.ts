@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { clearSession } from "@/server/auth/session";
+import { logoutAction } from "@/server/actions/auth";
 
 export async function POST(request: Request): Promise<NextResponse> {
-  await clearSession();
+  await logoutAction();
   return NextResponse.redirect(new URL("/", request.url));
 }

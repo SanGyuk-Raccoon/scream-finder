@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
-import { buildDiscordAuthorizeUrl, createDiscordState } from "@/server/auth/discord";
-import { setDiscordOAuthState } from "@/server/auth/session";
+import { startDiscordLoginAction } from "@/server/actions/auth";
 
 export async function GET(request: Request): Promise<NextResponse> {
   try {
-    const state = createDiscordState();
-    await setDiscordOAuthState(state);
-    return NextResponse.redirect(buildDiscordAuthorizeUrl(state));
+    return NextResponse.redirect(await startDiscordLoginAction());
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "DISCORD_OAUTH_NOT_CONFIGURED";

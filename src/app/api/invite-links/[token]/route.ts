@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getInviteLinkAction } from "@/server/actions/invite-links";
-import { getTeamViewAction } from "@/server/actions/queries";
+import { getTeamViewAction } from "@/server/actions/teams";
 
 type Context = {
   params: Promise<{ token: string }>;

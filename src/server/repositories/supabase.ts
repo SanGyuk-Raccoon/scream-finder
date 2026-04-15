@@ -1,7 +1,6 @@
 import "server-only";
 import {
   MatchPost,
-  RiotAccount,
   Team,
   TeamInviteLink,
   TeamMember,
@@ -10,7 +9,6 @@ import {
 import {
   InviteLinkRepository,
   MatchPostRepository,
-  RiotAccountRepository,
   TeamMemberRepository,
   TeamRepository,
   UserRepository,
@@ -39,7 +37,7 @@ type TeamMemberRow = {
   id: string;
   team_id: string;
   user_id: string | null;
-  riot_account_id: string | null;
+  display_name: string | null;
   role: TeamMember["role"];
   status: TeamMember["status"];
   created_at: string;
@@ -56,17 +54,6 @@ type InviteLinkRow = {
   used_count: number;
   expires_at: string | null;
   created_at: string;
-};
-
-type RiotAccountRow = {
-  id: string;
-  puuid: string;
-  game_name: string;
-  tag_line: string;
-  tier: RiotAccount["tier"] | null;
-  rank: number | null;
-  league_points: number | null;
-  verified_at: string;
 };
 
 type MatchPostRow = {
@@ -118,7 +105,7 @@ function toTeamMember(row: TeamMemberRow): TeamMember {
     id: row.id,
     teamId: row.team_id,
     userId: row.user_id ?? undefined,
-    riotAccountId: row.riot_account_id ?? undefined,
+    displayName: row.display_name ?? undefined,
     role: row.role,
     status: row.status,
     createdAt: row.created_at,
@@ -137,19 +124,6 @@ function toInviteLink(row: InviteLinkRow): TeamInviteLink {
     usedCount: row.used_count,
     expiresAt: row.expires_at ?? undefined,
     createdAt: row.created_at,
-  };
-}
-
-function toRiotAccount(row: RiotAccountRow): RiotAccount {
-  return {
-    id: row.id,
-    puuid: row.puuid,
-    gameName: row.game_name,
-    tagLine: row.tag_line,
-    tier: row.tier ?? undefined,
-    rank: row.rank ?? undefined,
-    leaguePoints: row.league_points ?? undefined,
-    verifiedAt: row.verified_at,
   };
 }
 
@@ -311,7 +285,7 @@ class SupabaseTeamMemberRepository implements TeamMemberRepository {
         id: member.id,
         team_id: member.teamId,
         user_id: member.userId ?? null,
-        riot_account_id: member.riotAccountId ?? null,
+        display_name: member.displayName ?? null,
         role: member.role,
         status: member.status,
         created_at: member.createdAt,
@@ -333,7 +307,7 @@ class SupabaseTeamMemberRepository implements TeamMemberRepository {
       .from("team_members")
       .update({
         user_id: member.userId ?? null,
-        riot_account_id: member.riotAccountId ?? null,
+        display_name: member.displayName ?? null,
         role: member.role,
         status: member.status,
         joined_at: member.joinedAt ?? null,
@@ -396,24 +370,6 @@ class SupabaseTeamMemberRepository implements TeamMemberRepository {
     return data ? toTeamMember(data) : null;
   }
 
-  async findByTeamIdAndRiotAccountId(
-    teamId: string,
-    riotAccountId: string,
-  ): Promise<TeamMember | null> {
-    const client = getSupabaseAdminClient();
-    const { data, error } = await client
-      .from("team_members")
-      .select("*")
-      .eq("team_id", teamId)
-      .eq("riot_account_id", riotAccountId)
-      .maybeSingle<TeamMemberRow>();
-
-    if (error) {
-      throw new Error(`SUPABASE_TEAM_MEMBERS_FIND_BY_RIOT_FAILED:${error.message}`);
-    }
-
-    return data ? toTeamMember(data) : null;
-  }
 }
 
 class SupabaseInviteLinkRepository implements InviteLinkRepository {
@@ -491,86 +447,6 @@ class SupabaseInviteLinkRepository implements InviteLinkRepository {
     }
 
     return (data ?? []).map(toInviteLink);
-  }
-}
-
-class SupabaseRiotAccountRepository implements RiotAccountRepository {
-  async upsert(account: RiotAccount): Promise<RiotAccount> {
-    const client = getSupabaseAdminClient();
-    const existing = await this.findByPuuid(account.puuid);
-
-    if (existing) {
-      const { data, error } = await client
-        .from("riot_accounts")
-        .update({
-          game_name: account.gameName,
-          tag_line: account.tagLine,
-          tier: account.tier ?? null,
-          rank: account.rank ?? null,
-          league_points: account.leaguePoints ?? null,
-          verified_at: account.verifiedAt,
-        })
-        .eq("id", existing.id)
-        .select()
-        .single<RiotAccountRow>();
-
-      if (error) {
-        throw new Error(`SUPABASE_RIOT_ACCOUNTS_UPDATE_FAILED:${error.message}`);
-      }
-
-      return toRiotAccount(requireData(data, "SUPABASE_RIOT_ACCOUNTS_UPDATE_EMPTY"));
-    }
-
-    const { data, error } = await client
-      .from("riot_accounts")
-      .insert({
-        id: account.id,
-        puuid: account.puuid,
-        game_name: account.gameName,
-        tag_line: account.tagLine,
-        tier: account.tier ?? null,
-        rank: account.rank ?? null,
-        league_points: account.leaguePoints ?? null,
-        verified_at: account.verifiedAt,
-      })
-      .select()
-      .single<RiotAccountRow>();
-
-    if (error) {
-      throw new Error(`SUPABASE_RIOT_ACCOUNTS_INSERT_FAILED:${error.message}`);
-    }
-
-    return toRiotAccount(requireData(data, "SUPABASE_RIOT_ACCOUNTS_INSERT_EMPTY"));
-  }
-
-  async findById(id: string): Promise<RiotAccount | null> {
-    const client = getSupabaseAdminClient();
-    const { data, error } = await client
-      .from("riot_accounts")
-      .select("*")
-      .eq("id", id)
-      .maybeSingle<RiotAccountRow>();
-
-    if (error) {
-      throw new Error(`SUPABASE_RIOT_ACCOUNTS_FIND_BY_ID_FAILED:${error.message}`);
-    }
-
-    return data ? toRiotAccount(data) : null;
-  }
-
-  async findByPuuid(puuid: string): Promise<RiotAccount | null> {
-    const client = getSupabaseAdminClient();
-    const { data, error } = await client
-      .from("riot_accounts")
-      .select("*")
-      .eq("puuid", puuid)
-      .maybeSingle<RiotAccountRow>();
-
-    if (error) {
-      throw new Error(`SUPABASE_RIOT_ACCOUNTS_FIND_BY_PUUID_FAILED:${error.message}`);
-    }
-
-    return data ? toRiotAccount(data) : null;
   }
 }
 
@@ -663,6 +539,5 @@ export const supabaseRepositories = {
   teams: new SupabaseTeamRepository(),
   members: new SupabaseTeamMemberRepository(),
   inviteLinks: new SupabaseInviteLinkRepository(),
-  riotAccounts: new SupabaseRiotAccountRepository(),
   matchPosts: new SupabaseMatchPostRepository(),
 };

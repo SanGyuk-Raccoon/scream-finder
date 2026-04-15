@@ -18,8 +18,8 @@ export default async function DashboardPage() {
         <p className="eyebrow">Owner Dashboard</p>
         <h1>{user.username}</h1>
         <p className="lede">
-          디스코드 로그인은 팀장 권한 확인용으로만 두고, 실제 팀 합류는 초대 링크와
-          Riot 검증으로 처리합니다.
+          Discord 로그인으로 팀장을 식별하고, 팀 생성과 초대 링크, 매칭 등록 흐름을 먼저 검증하는
+          단계입니다.
         </p>
         <div className="stat-grid">
           <article className="stat-card">
@@ -61,7 +61,7 @@ export default async function DashboardPage() {
           <div className="check-item">현재 사용자명이 Discord 계정과 맞는지</div>
           <div className="check-item">팀이 없으면 생성 버튼만 보이는지</div>
           <div className="check-item">팀이 있으면 팀 관리와 매칭 등록 버튼이 보이는지</div>
-          <div className="check-item">로그아웃 후 다시 홈으로 돌아가는지</div>
+          <div className="check-item">로그아웃 후 홈으로 돌아가는지</div>
         </div>
       </section>
     </main>

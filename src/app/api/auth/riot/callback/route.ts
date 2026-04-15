@@ -1,22 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionUser } from "@/server/auth/session";
-import { joinTeamByInvite } from "@/server/use-cases/join-team-by-invite";
+import { getCurrentUser } from "@/server/actions/auth";
+import { joinTeamByInviteAction } from "@/server/actions/invite-links";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const sessionUser = await getSessionUser();
-  const { searchParams } = request.nextUrl;
-  const token = searchParams.get("token");
-  const code = searchParams.get("code");
+  const sessionUser = await getCurrentUser();
+  const token = request.nextUrl.searchParams.get("token");
 
-  if (!token || !code) {
+  if (!token) {
     return NextResponse.redirect(new URL("/?error=RIOT_CALLBACK_INVALID", request.url));
   }
 
   try {
-    const result = await joinTeamByInvite({
+    const result = await joinTeamByInviteAction({
       token,
-      code,
       sessionUserId: sessionUser?.id,
+      displayName: sessionUser?.username,
     });
 
     return NextResponse.redirect(

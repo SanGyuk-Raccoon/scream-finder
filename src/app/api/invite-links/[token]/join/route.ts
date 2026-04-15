@@ -18,9 +18,7 @@ export async function POST(
     const result = await joinTeamByInviteAction({
       token,
       sessionUserId: user?.id,
-      code: String(formData.get("code") ?? "").trim() || undefined,
-      gameName: String(formData.get("gameName") ?? "").trim() || undefined,
-      tagLine: String(formData.get("tagLine") ?? "").trim() || undefined,
+      displayName: String(formData.get("displayName") ?? "").trim() || undefined,
     });
 
     return NextResponse.redirect(

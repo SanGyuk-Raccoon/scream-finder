@@ -17,28 +17,16 @@ create table if not exists teams (
   unique (owner_user_id)
 );
 
-create table if not exists riot_accounts (
-  id text primary key,
-  puuid text not null unique,
-  game_name text not null,
-  tag_line text not null,
-  tier text,
-  rank integer,
-  league_points integer,
-  verified_at timestamptz not null default now()
-);
-
 create table if not exists team_members (
   id text primary key,
   team_id text not null references teams(id) on delete cascade,
   user_id text references users(id) on delete set null,
-  riot_account_id text references riot_accounts(id) on delete set null,
+  display_name text,
   role text not null check (role in ('OWNER', 'MEMBER')),
-  status text not null check (status in ('PENDING_RIOT', 'ACTIVE', 'REMOVED')),
+  status text not null check (status in ('PENDING', 'ACTIVE', 'REMOVED')),
   created_at timestamptz not null default now(),
   joined_at timestamptz,
-  unique (team_id, user_id),
-  unique (team_id, riot_account_id)
+  unique (team_id, user_id)
 );
 
 create table if not exists team_invite_links (

@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  exchangeDiscordCode,
-  fetchDiscordUser,
-  findOrCreateDiscordOwner,
-} from "@/server/auth/discord";
-import { popDiscordOAuthState, setSessionUser } from "@/server/auth/session";
+import { finishDiscordLoginAction } from "@/server/actions/auth";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const code = request.nextUrl.searchParams.get("code");
@@ -15,16 +10,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(new URL(`/?error=${error}`, request.url));
   }
 
-  const storedState = await popDiscordOAuthState();
-  if (!code || !state || !storedState || state !== storedState) {
-    return NextResponse.redirect(new URL("/?error=DISCORD_STATE_MISMATCH", request.url));
-  }
-
   try {
-    const tokens = await exchangeDiscordCode(code);
-    const profile = await fetchDiscordUser(tokens.access_token);
-    const user = await findOrCreateDiscordOwner(profile);
-    await setSessionUser(user.id);
+    await finishDiscordLoginAction({ code, state });
     return NextResponse.redirect(new URL("/dashboard", request.url));
   } catch (oauthError) {
     const message =

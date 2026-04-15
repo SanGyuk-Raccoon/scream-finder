@@ -1,6 +1,6 @@
 export type TeamMemberRole = "OWNER" | "MEMBER";
 
-export type TeamMemberStatus = "PENDING_RIOT" | "ACTIVE" | "REMOVED";
+export type TeamMemberStatus = "PENDING" | "ACTIVE" | "REMOVED";
 
 export type InviteLinkStatus = "ACTIVE" | "EXPIRED" | "DISABLED";
 
@@ -36,22 +36,11 @@ export interface Team {
   updatedAt: string;
 }
 
-export interface RiotAccount {
-  id: string;
-  puuid: string;
-  gameName: string;
-  tagLine: string;
-  tier?: LolTier;
-  rank?: number;
-  leaguePoints?: number;
-  verifiedAt: string;
-}
-
 export interface TeamMember {
   id: string;
   teamId: string;
   userId?: string;
-  riotAccountId?: string;
+  displayName?: string;
   role: TeamMemberRole;
   status: TeamMemberStatus;
   createdAt: string;

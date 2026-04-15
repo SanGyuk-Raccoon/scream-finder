@@ -1,7 +1,6 @@
 import "server-only";
 import {
   MatchPost,
-  RiotAccount,
   Team,
   TeamInviteLink,
   TeamMember,
@@ -27,10 +26,6 @@ export interface TeamMemberRepository {
   listByTeamId(teamId: string): Promise<TeamMember[]>;
   findOwnerMember(teamId: string): Promise<TeamMember | null>;
   findByTeamIdAndUserId(teamId: string, userId: string): Promise<TeamMember | null>;
-  findByTeamIdAndRiotAccountId(
-    teamId: string,
-    riotAccountId: string,
-  ): Promise<TeamMember | null>;
 }
 
 export interface InviteLinkRepository {
@@ -38,12 +33,6 @@ export interface InviteLinkRepository {
   update(link: TeamInviteLink): Promise<TeamInviteLink>;
   findByToken(token: string): Promise<TeamInviteLink | null>;
   listByTeamId(teamId: string): Promise<TeamInviteLink[]>;
-}
-
-export interface RiotAccountRepository {
-  upsert(account: RiotAccount): Promise<RiotAccount>;
-  findById(id: string): Promise<RiotAccount | null>;
-  findByPuuid(puuid: string): Promise<RiotAccount | null>;
 }
 
 export interface MatchPostRepository {
