@@ -15,6 +15,7 @@ export interface UserRepository {
 
 export interface TeamRepository {
   create(team: Team): Promise<Team>;
+  delete(id: string): Promise<void>;
   update(team: Team): Promise<Team>;
   findById(id: string): Promise<Team | null>;
   findByOwnerUserId(ownerUserId: string): Promise<Team | null>;
@@ -26,6 +27,7 @@ export interface TeamMemberRepository {
   listByTeamId(teamId: string): Promise<TeamMember[]>;
   findOwnerMember(teamId: string): Promise<TeamMember | null>;
   findByTeamIdAndUserId(teamId: string, userId: string): Promise<TeamMember | null>;
+  findByTeamIdAndDisplayName(teamId: string, displayName: string): Promise<TeamMember | null>;
 }
 
 export interface InviteLinkRepository {

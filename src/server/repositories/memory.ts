@@ -64,6 +64,13 @@ class InMemoryTeamRepository implements TeamRepository {
     return team;
   }
 
+  async delete(id: string): Promise<void> {
+    const index = db.teams.findIndex((entry) => entry.id === id);
+    if (index >= 0) {
+      db.teams.splice(index, 1);
+    }
+  }
+
   async update(team: Team): Promise<Team> {
     const index = db.teams.findIndex((entry) => entry.id === team.id);
     db.teams[index] = team;
@@ -107,6 +114,14 @@ class InMemoryTeamMemberRepository implements TeamMemberRepository {
     return (
       db.members.find(
         (member) => member.teamId === teamId && member.userId === userId,
+      ) ?? null
+    );
+  }
+
+  async findByTeamIdAndDisplayName(teamId: string, displayName: string): Promise<TeamMember | null> {
+    return (
+      db.members.find(
+        (member) => member.teamId === teamId && member.displayName === displayName,
       ) ?? null
     );
   }

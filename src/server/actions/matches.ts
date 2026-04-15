@@ -1,17 +1,12 @@
 import "server-only";
-import { LolTier, MatchPost } from "@/shared/types/core";
+import { MatchPost } from "@/shared/types/core";
+import { RegisterMatchPostActionInput, RegisterMatchPostActionResult } from "@/shared/types/actions";
 import { createId } from "@/server/lib/id";
 import { repositories } from "@/server/repositories";
 
-export async function registerMatchPostAction(input: {
-  teamId: string;
-  actorUserId: string;
-  title: string;
-  description?: string;
-  minTier?: LolTier;
-  maxTier?: LolTier;
-  availableTime?: string;
-}): Promise<MatchPost> {
+export async function registerMatchPostAction(
+  input: RegisterMatchPostActionInput,
+): Promise<RegisterMatchPostActionResult> {
   const team = await repositories.teams.findById(input.teamId);
   if (!team) {
     throw new Error("TEAM_NOT_FOUND");
@@ -27,6 +22,10 @@ export async function registerMatchPostAction(input: {
   );
   if (!ownerMember || ownerMember.status !== "ACTIVE") {
     throw new Error("OWNER_MEMBER_REQUIRED");
+  }
+
+  if (!input.title.trim()) {
+    throw new Error("TITLE_REQUIRED");
   }
 
   const openPost = await repositories.matchPosts.findOpenByTeamId(team.id);

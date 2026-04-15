@@ -1,6 +1,12 @@
 import "server-only";
 import crypto from "crypto";
 import { TeamInviteLink, TeamMember } from "@/shared/types/core";
+import {
+  CreateInviteLinkActionInput,
+  CreateInviteLinkActionResult,
+  JoinTeamByInviteActionInput,
+  JoinTeamByInviteActionResult,
+} from "@/shared/types/actions";
 import { createId, createToken } from "@/server/lib/id";
 import { repositories } from "@/server/repositories";
 
@@ -8,12 +14,9 @@ function isInviteExpired(expiresAt?: string): boolean {
   return Boolean(expiresAt && new Date(expiresAt).getTime() < Date.now());
 }
 
-export async function createInviteLinkAction(input: {
-  teamId: string;
-  actorUserId: string;
-  maxUses?: number;
-  expiresAt?: string;
-}) {
+export async function createInviteLinkAction(
+  input: CreateInviteLinkActionInput,
+): Promise<CreateInviteLinkActionResult> {
   const team = await repositories.teams.findById(input.teamId);
   if (!team) {
     throw new Error("TEAM_NOT_FOUND");
@@ -42,11 +45,9 @@ export async function getInviteLinkAction(token: string) {
   return repositories.inviteLinks.findByToken(token);
 }
 
-export async function joinTeamByInviteAction(input: {
-  token: string;
-  sessionUserId?: string;
-  displayName?: string;
-}): Promise<{ member: TeamMember; teamId: string }> {
+export async function joinTeamByInviteAction(
+  input: JoinTeamByInviteActionInput,
+): Promise<JoinTeamByInviteActionResult> {
   const link = await repositories.inviteLinks.findByToken(input.token);
   if (!link) {
     throw new Error("INVITE_NOT_FOUND");
@@ -74,7 +75,23 @@ export async function joinTeamByInviteAction(input: {
     ? await repositories.members.findByTeamIdAndUserId(team.id, input.sessionUserId)
     : null;
 
+  if (!member && trimmedDisplayName) {
+    member = await repositories.members.findByTeamIdAndDisplayName(team.id, trimmedDisplayName);
+  }
+
   const joinedAt = new Date().toISOString();
+
+  if (member?.status === "ACTIVE") {
+    if (trimmedDisplayName && member.displayName !== trimmedDisplayName) {
+      member = {
+        ...member,
+        displayName: trimmedDisplayName,
+      };
+      await repositories.members.update(member);
+    }
+
+    return { member, teamId: team.id, reusedExistingMembership: true };
+  }
 
   if (member) {
     member = {
@@ -102,5 +119,5 @@ export async function joinTeamByInviteAction(input: {
     usedCount: link.usedCount + 1,
   });
 
-  return { member, teamId: team.id };
+  return { member, teamId: team.id, reusedExistingMembership: false };
 }

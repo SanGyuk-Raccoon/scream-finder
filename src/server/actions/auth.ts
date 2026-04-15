@@ -1,5 +1,9 @@
 import "server-only";
 import {
+  FinishDiscordLoginActionInput,
+  FinishDiscordLoginActionResult,
+} from "@/shared/types/actions";
+import {
   buildDiscordAuthorizeUrl,
   createDiscordState,
   exchangeDiscordCode,
@@ -26,10 +30,9 @@ export async function startDiscordLoginAction() {
   return buildDiscordAuthorizeUrl(state);
 }
 
-export async function finishDiscordLoginAction(input: {
-  code?: string | null;
-  state?: string | null;
-}) {
+export async function finishDiscordLoginAction(
+  input: FinishDiscordLoginActionInput,
+): Promise<FinishDiscordLoginActionResult> {
   const storedState = await popDiscordOAuthState();
   if (!input.code || !input.state || !storedState || input.state !== storedState) {
     throw new Error("DISCORD_STATE_MISMATCH");

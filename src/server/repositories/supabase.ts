@@ -223,6 +223,15 @@ class SupabaseTeamRepository implements TeamRepository {
     return toTeam(requireData(data, "SUPABASE_TEAMS_CREATE_EMPTY"));
   }
 
+  async delete(id: string): Promise<void> {
+    const client = getSupabaseAdminClient();
+    const { error } = await client.from("teams").delete().eq("id", id);
+
+    if (error) {
+      throw new Error(`SUPABASE_TEAMS_DELETE_FAILED:${error.message}`);
+    }
+  }
+
   async update(team: Team): Promise<Team> {
     const client = getSupabaseAdminClient();
     const { data, error } = await client
@@ -365,6 +374,22 @@ class SupabaseTeamMemberRepository implements TeamMemberRepository {
 
     if (error) {
       throw new Error(`SUPABASE_TEAM_MEMBERS_FIND_BY_USER_FAILED:${error.message}`);
+    }
+
+    return data ? toTeamMember(data) : null;
+  }
+
+  async findByTeamIdAndDisplayName(teamId: string, displayName: string): Promise<TeamMember | null> {
+    const client = getSupabaseAdminClient();
+    const { data, error } = await client
+      .from("team_members")
+      .select("*")
+      .eq("team_id", teamId)
+      .eq("display_name", displayName)
+      .maybeSingle<TeamMemberRow>();
+
+    if (error) {
+      throw new Error(`SUPABASE_TEAM_MEMBERS_FIND_BY_DISPLAY_NAME_FAILED:${error.message}`);
     }
 
     return data ? toTeamMember(data) : null;

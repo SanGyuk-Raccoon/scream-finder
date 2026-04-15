@@ -1,15 +1,14 @@
 import "server-only";
-import { Team, TeamMember, TeamInviteLink, MatchPost } from "@/shared/types/core";
+import { Team, TeamMember } from "@/shared/types/core";
+import {
+  CreateTeamActionInput,
+  CreateTeamActionResult,
+  GetTeamViewActionResult,
+} from "@/shared/types/actions";
 import { createId } from "@/server/lib/id";
 import { repositories } from "@/server/repositories";
 
-export async function createTeamAction(input: {
-  ownerUserId: string;
-  ownerDisplayName?: string;
-  name: string;
-  description?: string;
-  activityTime?: string;
-}) {
+export async function createTeamAction(input: CreateTeamActionInput): Promise<CreateTeamActionResult> {
   if (!input.name.trim()) {
     throw new Error("TEAM_NAME_REQUIRED");
   }
@@ -32,18 +31,23 @@ export async function createTeamAction(input: {
 
   await repositories.teams.create(team);
 
-  const ownerMember: TeamMember = {
-    id: createId(),
-    teamId: team.id,
-    userId: input.ownerUserId,
-    role: "OWNER",
-    status: "ACTIVE",
-    displayName: input.ownerDisplayName,
-    createdAt: now,
-    joinedAt: now,
-  };
+  try {
+    const ownerMember: TeamMember = {
+      id: createId(),
+      teamId: team.id,
+      userId: input.ownerUserId,
+      role: "OWNER",
+      status: "ACTIVE",
+      displayName: input.ownerDisplayName,
+      createdAt: now,
+      joinedAt: now,
+    };
 
-  await repositories.members.create(ownerMember);
+    await repositories.members.create(ownerMember);
+  } catch (error) {
+    await repositories.teams.delete(team.id);
+    throw error;
+  }
 
   return team;
 }
@@ -52,12 +56,7 @@ export async function getMyTeamAction(ownerUserId: string) {
   return repositories.teams.findByOwnerUserId(ownerUserId);
 }
 
-export async function getTeamViewAction(teamId: string): Promise<{
-  team: Team | null;
-  members: TeamMember[];
-  inviteLinks: TeamInviteLink[];
-  matchPosts: MatchPost[];
-}> {
+export async function getTeamViewAction(teamId: string): Promise<GetTeamViewActionResult> {
   const team = await repositories.teams.findById(teamId);
   if (!team) {
     return {
