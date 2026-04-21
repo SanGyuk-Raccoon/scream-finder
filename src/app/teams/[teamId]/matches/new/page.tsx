@@ -1,5 +1,9 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { AppShell } from "@/client/components/app-shell";
+import { CheckItem } from "@/client/components/check-item";
+import { MatchPostForm } from "@/client/components/match-post-form";
+import { StatusAlert } from "@/client/components/status-alert";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/client/components/ui/card";
 import { getCurrentUser } from "@/server/actions/auth";
 import { getTeamViewAction } from "@/server/actions/teams";
 
@@ -40,69 +44,39 @@ export default async function NewMatchPage({ params, searchParams }: Props) {
   }
 
   return (
-    <main className="shell">
-      <section className="panel">
-        <p className="eyebrow">Match Registration</p>
-        <h1>{team.name} 스크림 모집 글 등록</h1>
-        <p className="lede">
-          현재 단계에서는 팀장 권한과 기본 팀 구성이 있으면 매칭 글을 등록할 수 있습니다.
-        </p>
-        {query.error ? <p className="notice error">{query.error}</p> : null}
-        <form action={`/api/teams/${team.id}/matches`} method="post" className="stack">
-          <label className="field">
-            <span>제목</span>
-            <input name="title" placeholder="금요일 5:5 스크림 구합니다" required />
-          </label>
-          <label className="field">
-            <span>설명</span>
-            <textarea
-              name="description"
-              rows={4}
-              placeholder="평균 티어, 시작 시간, 요청 사항 등을 적어주세요"
+    <AppShell>
+      <section className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-3xl sm:text-4xl">{team.name} 스크림 모집 글 등록</CardTitle>
+            <CardDescription>
+              현재 단계에서는 팀장 권한과 기본 팀 구성이 있으면 매칭 글을 등록할 수 있습니다.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {query.error ? (
+              <StatusAlert title="매칭 등록 오류" tone="destructive" description={query.error} />
+            ) : null}
+            <MatchPostForm
+              action={`/api/teams/${team.id}/matches`}
+              cancelHref={`/teams/${team.id}`}
+              tiers={TIERS}
             />
-          </label>
-          <div className="grid two">
-            <label className="field">
-              <span>최소 티어</span>
-              <select name="minTier" defaultValue="">
-                <option value="">선택 안 함</option>
-                {TIERS.map((tier) => (
-                  <option key={tier} value={tier}>
-                    {tier}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>최대 티어</span>
-              <select name="maxTier" defaultValue="">
-                <option value="">선택 안 함</option>
-                {TIERS.map((tier) => (
-                  <option key={tier} value={tier}>
-                    {tier}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <label className="field">
-            <span>가능 시간</span>
-            <input name="availableTime" placeholder="금요일 22:00-01:00" />
-          </label>
-          <div className="actions">
-            <button className="button" type="submit">
-              매칭 등록
-            </button>
-            <Link className="button secondary" href={`/teams/${team.id}`}>
-              돌아가기
-            </Link>
-          </div>
-        </form>
-        <div className="checklist top-gap">
-          <div className="check-item">등록 성공 후 팀 상세 페이지에 OPEN 상태 글이 보여야 합니다</div>
-          <div className="check-item">같은 팀에서 동시에 하나의 OPEN 글만 유지되는지 확인합니다</div>
-        </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>등록 후 확인할 것</CardTitle>
+            <CardDescription>매칭 등록이 성공하면 아래 상태가 팀 상세 화면에 반영되어야 합니다.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            <CheckItem title="등록 성공 후 팀 상세 페이지에 OPEN 상태 글이 보여야 합니다." />
+            <CheckItem title="같은 팀에서는 동시에 하나의 OPEN 글만 유지되어야 합니다." />
+            <CheckItem title="팀장 권한이 없는 계정은 접근할 수 없어야 합니다." done />
+          </CardContent>
+        </Card>
       </section>
-    </main>
+    </AppShell>
   );
 }
