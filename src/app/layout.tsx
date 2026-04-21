@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Scream Finder",
-  description: "Scrim team creation, invite links, and Riot-verified match registration.",
+  title: "ScrimFinder",
+  description: "Scrim team creation, invite links, membership onboarding, and Riot account verification preparation.",
 };
 
 export default function RootLayout({
