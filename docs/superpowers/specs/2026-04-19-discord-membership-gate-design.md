@@ -325,3 +325,45 @@ Riot configuration is required only for invite-based team joining.
 - Users may own multiple teams, so current owner uniqueness assumptions must be removed from schema and query logic
 - Discord bot misconfiguration blocks match registration
 - Riot approval remains an external dependency for the invite join flow
+
+## v1 변경 사항 (Issue #12)
+
+본 설계 문서는 *RSO가 가용해진 이후의 최종 형태*를 기술한다. v1에서는 아래 항목이 일시적으로 다르게 동작하며, 명세 본문은 `docs/requirements/v1.md` 에 별도로 박혀 있다.
+
+### 1. Discord 길드 게이트 검사 시점 — 이동
+
+기존 본문(`Match Registration Guard`, `Match Registration Entry/Submit`, `Data Flow > Match Registration Entry/Submit`)은 길드 게이트를 *모집 등록 entry + submit* 두 자리에서 검사하도록 되어 있다.
+
+v1 에서는 이를 **팀 합류 시점 한 자리**로 옮긴다.
+
+- 검사 위치: `joinTeamByInviteAction` 직전 (Discord 로그인이 끝난 직후, 멤버 생성 전).
+- 모집 등록 시점에는 길드 게이트 추가 검사를 *하지 않는다*. 이미 합류 시 통과한 사람들만 그 흐름에 들어가기 때문.
+- 트레이드오프로 *합류 후 길드 탈퇴* 케이스는 잡히지 않는다. 매칭 알림 직전 재검사 방어선은 잠재 부채로 추후 추가.
+- 사용자 결정 근거: "회원가입(=Discord 인증으로 사이트에 한 번 들어옴) ≠ 매 방문마다 로그인". 비로그인 둘러보기 요건과의 충돌도 회피.
+
+### 2. RSO 비가용 기간의 임시 자기 신고 폼
+
+본문 `Riot Join Flow` 와 `Data Flow > Invite Join` 의 3–6 단계는 RSO 호출을 전제한다.
+
+v1 에서는 RSO 가 외부 사정으로 가용하지 않으므로, 같은 자리를 **임시 자기 신고 폼**으로 대체한다.
+
+- 입력 항목: **Riot 닉네임 (`gameName`) + 솔로 티어 (`soloTier`)**.
+- 저장 위치: 합류 시점에 입력되므로 `team_members` 측이 자연스럽다 (정확한 위치는 후속 타입 PR에서 확정).
+- RSO 가용 시점에 **동일 자리를 RSO 결과로 교체**한다. 도메인 모델 자체는 바뀌지 않는다 (필드 이름이 같은 자리에 남음).
+- 자기 신고는 신뢰도가 낮으므로, 자동 매칭이 사용하는 평균 티어는 *현 시점의 자기 신고 값* 을 그대로 사용하되, 추후 RSO 결과로 덮어쓴다.
+
+### 3. `Match` 엔터티 도입과 매칭 흐름
+
+본 설계 문서는 매칭(두 팀을 묶는 행위)을 *명시적으로 다루지 않는다*. v1 에서는 이를 별도 엔터티로 도입한다.
+
+- 신규 엔터티 `Match`: 두 팀 / 두 모집글을 묶는 합의 결과. 승패는 저장하지 않음.
+- 신규 엔터티 `MatchProposal` (또는 `MatchRequest`): 수동 신청과 자동 매칭 후보를 같은 자료형으로 표현.
+- **수동 신청과 자동 매칭은 항상 병행**한다. 모든 `OPEN` 모집글이 자동 큐의 후보이자 수동 신청 대상.
+- 티어 비교는 **팀 평균 티어 vs 모집글 `minTier`–`maxTier`**.
+- 매칭 확정 시점에 Discord 봇이 양 팀에 알림 송신.
+
+자세한 흐름·필드는 `docs/requirements/v1.md` §5 참조.
+
+### 4. 모집 등록 가드 — 정확히 5명
+
+본 설계 문서의 `Team Completion` / `Match Registration` 조건과 일치한다. 다만 현재 코드는 `registerMatchPostAction` 가 "ACTIVE ≥ 1" 만 검사하므로 v1 에서 **"ACTIVE == 5"** 로 강화한다.
